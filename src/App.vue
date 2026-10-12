@@ -8,7 +8,7 @@ const title = computed(() => route.meta.title || "Dashboard");
 const nav = computed(() =>
   auth.role === "teacher"
     ? [
-        { label: "Review Requests", to: "/teacher/review", icon: "▣" },
+        { label: "Review Requests", to: "/teacher/review", icon: "todo" },
         { label: "Settings", to: "/teacher/settings", icon: "settings" },
       ]
     : [
@@ -60,6 +60,10 @@ const nav = computed(() =>
             </svg>
             <svg v-else-if="item.icon === 'home'" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="m3 10.5 9-7 9 7M5.5 9v11h13V9M9.5 20v-6h5v6" />
+            </svg>
+            <svg v-else-if="item.icon === 'todo'" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M9 6.5h11M9 12h11M9 17.5h11" />
+              <path d="M4 6.5l1.2 1.2 2.3-2.7M4 12l1.2 1.2 2.3-2.7M4 17.5l1.2 1.2 2.3-2.7" />
             </svg>
             <template v-else>{{ item.icon }}</template>
           </span
