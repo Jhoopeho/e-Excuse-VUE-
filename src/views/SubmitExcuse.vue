@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { addRequest, saveRequestAttachment } from '../store'
+import { addRequest, hasRequestConflict, saveRequestAttachment } from '../store'
 
 const router = useRouter()
 const form = ref({ reason: '', dateStart: '', dateEnd: '', details: '', documentName: '' })
@@ -10,10 +10,6 @@ const selectedFile = ref(null)
 const fileInput = ref(null)
 const error = ref('')
 const success = ref(false)
-function todayInput() {
-  const today = new Date()
-  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-}
 function onFile(event) {
   const file = event.target.files?.[0]
   if (!file) return
@@ -38,18 +34,20 @@ function onFile(event) {
 }
 async function submitForm() {
   error.value = ''
-  if (!form.value.reason || !selectedSubjects.value.length || !form.value.dateStart) {
-    error.value = 'Please choose a reason, select at least one subject, and enter a start date.'
+  if (!form.value.reason || !selectedSubjects.value.length || !form.value.dateStart || !form.value.details.trim()) {
+    error.value = 'Please choose a reason, select at least one subject, enter a start date, and provide additional details.'
     return
   }
   if (form.value.dateEnd && form.value.dateStart > form.value.dateEnd) {
     error.value = 'The end date must be on or after the start date.'
     return
   }
-  const today = new Date()
-  const todayLabel = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-  if (form.value.dateStart > todayLabel) {
-    error.value = 'The start date cannot be in the future.'
+  const dateEnd = form.value.dateEnd || form.value.dateStart
+  const conflictingSubjects = selectedSubjects.value.filter(subject =>
+    hasRequestConflict(subject, form.value.dateStart, dateEnd)
+  )
+  if (conflictingSubjects.length) {
+    error.value = `An excuse already exists for ${conflictingSubjects.join(', ')} on one or more selected dates. Each subject can have only one excuse for each date.`
     return
   }
   let attachmentId = ''
@@ -82,31 +80,31 @@ async function submitForm() {
           <legend>Subject / Course Code <span class="required">*</span></legend>
           <label class="subject-option" :class="{ selected: selectedSubjects.includes('WS-301') }">
             <input v-model="selectedSubjects" type="checkbox" name="subjects" value="WS-301" />
-            <span>WS-301</span>
-          </label>
-          <label class="subject-option" :class="{ selected: selectedSubjects.includes('DC-301') }">
-            <input v-model="selectedSubjects" type="checkbox" name="subjects" value="DC-301" />
-            <span>DC-301</span>
+            <span>WS-301 <small>MWF</small></span>
           </label>
           <label class="subject-option" :class="{ selected: selectedSubjects.includes('CC-302') }">
             <input v-model="selectedSubjects" type="checkbox" name="subjects" value="CC-302" />
-            <span>CC-302</span>
+            <span>CC-302 <small>MWF</small></span>
           </label>
-          <label class="subject-option" :class="{ selected: selectedSubjects.includes('IPT-301') }">
-            <input v-model="selectedSubjects" type="checkbox" name="subjects" value="IPT-301" />
-            <span>IPT-301</span>
+          <label class="subject-option" :class="{ selected: selectedSubjects.includes('DC-301') }">
+            <input v-model="selectedSubjects" type="checkbox" name="subjects" value="DC-301" />
+            <span>DC-301 <small>TTH</small></span>
+          </label>
+          <label class="subject-option" :class="{ selected: selectedSubjects.includes('IPT') }">
+            <input v-model="selectedSubjects" type="checkbox" name="subjects" value="IPT" />
+            <span>IPT <small>TTH</small></span>
           </label>
           <p class="field-note">Select every subject this absence applies to. A separate request will be created for each one.</p>
         </fieldset>
 
         <div class="form-grid absence-date-range">
-          <div><label for="date-start">Start Date <span class="required">*</span></label><input id="date-start" v-model="form.dateStart" type="date" :max="todayInput()" required /></div>
-          <div><label for="date-end">End Date <span class="optional">(optional)</span></label><input id="date-end" v-model="form.dateEnd" type="date" :min="form.dateStart || undefined" /></div>
+          <div><label for="date-start">Start Date <span class="required">*</span></label><input id="date-start" v-model="form.dateStart" type="date" required /></div>
+          <div><label for="date-end">End Date <span class="optional">(optional)</span></label><input id="date-end" v-model="form.dateEnd" type="date" :min="form.dateStart || undefined" :disabled="!form.dateStart" /></div>
         </div>
         <p class="field-note absence-range-note">Leave the end date blank for a one-day absence. For a longer absence, enter the last day.</p>
 
-        <label for="details">Additional Details</label>
-        <textarea id="details" v-model="form.details" maxlength="300" rows="5" placeholder="Write a short reason (optional)"></textarea>
+        <label for="details">Additional Details <span class="required">*</span></label>
+        <textarea id="details" v-model="form.details" maxlength="300" rows="5" placeholder="Write a short reason" required></textarea>
         <div class="character-count">{{ form.details.length }}/300</div>
 
         <label>Upload Supporting Document</label>

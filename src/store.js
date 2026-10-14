@@ -145,10 +145,12 @@ function nextRequestId() {
 }
 
 export function addRequest(payload) {
-  const today = new Date()
-  const submitted = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const dateStart = payload.dateStart || payload.date
   const dateEnd = payload.dateEnd || payload.date || dateStart
+  const subject = payload.subject?.trim() || ''
+  if (hasRequestConflict(subject, dateStart, dateEnd)) return null
+  const today = new Date()
+  const submitted = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   state.requests.unshift({
     id: nextRequestId(),
     studentName: state.profile.fullName,
@@ -156,11 +158,12 @@ export function addRequest(payload) {
     course: state.profile.course,
     yearLevel: state.profile.yearLevel,
     reason: payload.reason,
-    subject: payload.subject?.trim() || '',
+    subject,
     date: dateStart,
     dateStart,
     dateEnd,
     submitted,
+    submittedAt: new Date().toISOString(),
     details: payload.details.trim(),
     status: 'Pending',
     documentName: payload.documentName || '',
@@ -169,11 +172,33 @@ export function addRequest(payload) {
   return state.requests[0].id
 }
 
+function requestDatesOverlap(request, dateStart, dateEnd) {
+  const existingStart = request.dateStart || request.date
+  const existingEnd = request.dateEnd || request.date
+  return existingStart <= dateEnd && dateStart <= existingEnd
+}
+
+export function hasRequestConflict(subject, dateStart, dateEnd = dateStart, excludeId = null) {
+  const normalizedSubject = subject.trim().toLowerCase()
+  if (!normalizedSubject || !dateStart || !dateEnd) return false
+  return state.requests.some(request =>
+    request.id !== excludeId &&
+    (request.subject || '').trim().toLowerCase() === normalizedSubject &&
+    requestDatesOverlap(request, dateStart, dateEnd)
+  )
+}
+
 export function updateRequest(id, changes) {
   const request = state.requests.find(item => item.id === id)
   if (request) Object.assign(request, changes)
 }
 
-export function deleteRequest(id) {
-  state.requests = state.requests.filter(item => item.id !== id)
+export function deleteStudentRequest(id) {
+  const request = state.requests.find(item => item.id === id)
+  if (request) request.studentDeleted = true
+}
+
+export function deleteTeacherRequest(id) {
+  const request = state.requests.find(item => item.id === id)
+  if (request && request.status !== 'Pending') request.teacherDeleted = true
 }

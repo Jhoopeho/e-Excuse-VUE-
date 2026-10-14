@@ -3,19 +3,21 @@ import { computed } from "vue";
 import { RouterLink } from "vue-router";
 import { state } from "../store";
 
-const total = computed(() => state.requests.length);
+const total = computed(() => studentRequests.value.length);
+const studentRequests = computed(() => state.requests.filter((r) => !r.studentDeleted));
+const visibleCount = computed(() => studentRequests.value.length);
 const approved = computed(
-  () => state.requests.filter((r) => r.status === "Approved").length,
+  () => studentRequests.value.filter((r) => r.status === "Approved").length,
 );
 const pending = computed(
-  () => state.requests.filter((r) => r.status === "Pending").length,
+  () => studentRequests.value.filter((r) => r.status === "Pending").length,
 );
 const rejected = computed(
-  () => state.requests.filter((r) => r.status === "Rejected").length,
+  () => studentRequests.value.filter((r) => r.status === "Rejected").length,
 );
-const recent = computed(() => [...state.requests].slice(0, 4));
+const recent = computed(() => [...studentRequests.value].slice(0, 4));
 const percent = computed(() =>
-  total.value ? Math.round((approved.value / total.value) * 100) : 0,
+  visibleCount.value ? Math.round((approved.value / visibleCount.value) * 100) : 0,
 );
 function dateRangeLabel(item) {
   const start = item.dateStart || item.date;
@@ -256,7 +258,7 @@ function reasonIconType(reason) {
               :style="{
                 width:
                   (total
-                    ? (state.requests.filter((r) => r.status === status)
+                    ? (studentRequests.filter((r) => r.status === status)
                         .length /
                         total) *
                       100
@@ -265,7 +267,7 @@ function reasonIconType(reason) {
             ></i>
           </div>
           <strong>{{
-            state.requests.filter((r) => r.status === status).length
+            studentRequests.filter((r) => r.status === status).length
           }}</strong>
         </div>
       </article>

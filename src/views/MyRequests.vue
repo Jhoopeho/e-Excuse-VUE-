@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { state, deleteRequest, updateRequest, saveRequestAttachment, deleteRequestAttachment, getRequestAttachment } from '../store'
+import { state, deleteStudentRequest, updateRequest, hasRequestConflict, saveRequestAttachment, deleteRequestAttachment, getRequestAttachment } from '../store'
 
 const route = useRoute()
 const activeFilter = ref('All')
@@ -17,11 +17,12 @@ const editFileInput = ref(null)
 const editDocumentName = ref('')
 const editError = ref('')
 const filters = ['All', 'Pending', 'Approved', 'Rejected']
-const filtered = computed(() => state.requests.filter(item =>
+const studentRequests = computed(() => state.requests.filter(item => !item.studentDeleted))
+const filtered = computed(() => studentRequests.value.filter(item =>
   (activeFilter.value === 'All' || item.status === activeFilter.value) &&
   `${item.reason} ${item.subject || ''} ${item.status} ${item.details}`.toLowerCase().includes(search.value.toLowerCase())
 ))
-watch(() => route.query.selected, id => { if (id) selected.value = state.requests.find(r => String(r.id) === String(id)) || null }, { immediate: true })
+watch(() => route.query.selected, id => { if (id) selected.value = studentRequests.value.find(r => String(r.id) === String(id)) || null }, { immediate: true })
 watch(selected, async (item, _previousItem, onCleanup) => {
   let current = true
   onCleanup(() => {
@@ -102,6 +103,10 @@ function clearEditDocument() {
 async function saveEdit(item) {
   editError.value = ''
   if (!item || item.status !== 'Pending' || !editForm.value.reason || !editForm.value.subject.trim() || !editForm.value.dateStart || (editForm.value.dateEnd && editForm.value.dateStart > editForm.value.dateEnd)) return
+  if (hasRequestConflict(editForm.value.subject, editForm.value.dateStart, editForm.value.dateEnd || editForm.value.dateStart, item.id)) {
+    editError.value = 'An excuse already exists for this subject on one or more selected dates. Each subject can have only one excuse for each date.'
+    return
+  }
   let attachmentId = item.attachmentId || ''
   if (editFile.value) {
     const sharedAttachment = state.requests.some(request => request.id !== item.id && request.attachmentId === attachmentId)
@@ -140,16 +145,7 @@ function remove(item) {
 async function confirmDelete() {
   if (!deleting.value) return
   const item = deleting.value
-  const attachmentId = item.attachmentId
-  const sharedAttachment = attachmentId && state.requests.some(request => request.id !== item.id && request.attachmentId === attachmentId)
-  if (attachmentId && !sharedAttachment) {
-    try {
-      await deleteRequestAttachment(attachmentId)
-    } catch {
-      // Keep request deletion available if browser file storage is unavailable.
-    }
-  }
-  deleteRequest(item.id)
+  deleteStudentRequest(item.id)
   if (selected.value?.id === item.id) selected.value = null
   deleting.value = null
 }
@@ -158,7 +154,7 @@ async function confirmDelete() {
 <template>
   <section class="page-intro"><div><h1>My Requests</h1><p>View and track all your absence requests.</p></div><RouterLink to="/submit" class="primary-button compact-button">＋ New Request</RouterLink></section>
   <section class="panel requests-panel">
-    <div class="request-toolbar"><div class="filter-tabs"><button v-for="filter in filters" :key="filter" :class="{ selected: activeFilter === filter }" @click="activeFilter = filter">{{ filter }} <span>{{ filter === 'All' ? state.requests.length : state.requests.filter(r => r.status === filter).length }}</span></button></div><label class="table-search"><span>⌕</span><input v-model="search" placeholder="Search requests..." aria-label="Search requests" /></label></div>
+    <div class="request-toolbar"><div class="filter-tabs"><button v-for="filter in filters" :key="filter" :class="{ selected: activeFilter === filter }" @click="activeFilter = filter">{{ filter }} <span>{{ filter === 'All' ? studentRequests.length : studentRequests.filter(r => r.status === filter).length }}</span></button></div><label class="table-search"><span>⌕</span><input v-model="search" placeholder="Search requests..." aria-label="Search requests" /></label></div>
     <div class="table-wrap">
       <table>
         <thead><tr><th>#</th><th>Reason</th><th>Subject / Course</th><th>Absence Dates</th><th>Submitted On</th><th>Status</th><th>Actions</th></tr></thead>
@@ -183,7 +179,7 @@ async function confirmDelete() {
         </tbody>
       </table>
     </div>
-    <div class="table-footer">Showing {{ filtered.length }} of {{ state.requests.length }} requests <span>Stored locally in this browser</span></div>
+    <div class="table-footer">Showing {{ filtered.length }} of {{ studentRequests.length }} requests <span>Stored locally in this browser</span></div>
   </section>
 
   <div v-if="selected" class="modal-backdrop" @click.self="selected = null">

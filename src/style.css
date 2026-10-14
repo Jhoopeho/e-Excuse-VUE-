@@ -210,6 +210,8 @@ td{font-size:10px;color:#64799e;padding:12px;border-bottom:1px solid #edf1f7}
 .teacher-card-summary{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:13px 0 0;color:var(--muted);font-size:11px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
 .teacher-card-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
 .teacher-card-actions .teacher-details-button{margin:0;font-size:10px}
+.teacher-card-actions .teacher-delete-action,.teacher-dialog-actions .teacher-delete-action{display:grid;place-items:center;width:30px;height:30px;padding:0;border:0;border-radius:6px;background:#fff0f0;color:#d83b45;cursor:pointer}
+.teacher-delete-action svg{display:block;width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .teacher-dialog-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-top:20px}
 .teacher-dialog-actions button{min-height:38px;padding:0 12px;border:0;border-radius:8px;font-size:11px;font-weight:600}
 .teacher-dialog-actions .approve-button{background:#e4f9eb;color:#07833a}
@@ -261,6 +263,7 @@ td{font-size:10px;color:#64799e;padding:12px;border-bottom:1px solid #edf1f7}
 .dark-mode .sidebar,.dark-mode .topbar{background:#142239;border-color:#273a55}
 .dark-mode .sidebar-user,.dark-mode .panel,.dark-mode .stat-card,.dark-mode .modal-card{background:#17263c;border-color:#263b59;color:var(--ink)}
 .dark-mode .nav-link{color:#c3d1e6}.dark-mode .nav-link.active{background:#183b68;color:#72adff}
+.dark-mode form label:not(.subject-option),.dark-mode .modal-card label,.dark-mode .login-role-label{color:#d5e3f7}
 .dark-mode .brand small,.dark-mode .activity-copy small,.dark-mode td,.dark-mode .panel-heading p{color:#9eafca}
 .dark-mode .table-reason{color:#e5edf9}
 .dark-mode .table-search,.dark-mode .profile-facts,.dark-mode thead{background:#20324c}
